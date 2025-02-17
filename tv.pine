@@ -1,0 +1,54 @@
+indicator("Custom Crypto KST + WAP + Dollar Volume", overlay=false)
+
+// Custom Inputs
+fastLength1 = input(10, "KST Fast Length 1")
+fastLength2 = input(15, "KST Fast Length 2")
+fastLength3 = input(20, "KST Fast Length 3")
+fastLength4 = input(30, "KST Fast Length 4")
+slowLength1 = input(10, "KST Slow Length 1")
+slowLength2 = input(15, "KST Slow Length 2")
+slowLength3 = input(20, "KST Slow Length 3")
+slowLength4 = input(30, "KST Slow Length 4")
+sigLength = input(9, "KST Signal Length")
+
+rsiLength = input(14, "RSI Length")
+wapLength = input(20, "WAP Length")
+
+// WAP (Weighted Average Price)
+wap = ta.vwma(close, wapLength)
+
+// Dollar Volume (Volume * Close Price)
+dollarVolume = volume * close
+dollarVolumeMA = ta.sma(dollarVolume, 20)
+
+// KST Calculation
+roc1 = ta.roc(close, fastLength1)
+roc2 = ta.roc(close, fastLength2)
+roc3 = ta.roc(close, fastLength3)
+roc4 = ta.roc(close, fastLength4)
+
+maRoc1 = ta.sma(roc1, slowLength1)
+maRoc2 = ta.sma(roc2, slowLength2)
+maRoc3 = ta.sma(roc3, slowLength3)
+maRoc4 = ta.sma(roc4, slowLength4)
+
+KST = maRoc1 + (2 * maRoc2) + (3 * maRoc3) + (4 * maRoc4)
+KSTSignal = ta.sma(KST, sigLength)
+
+// RSI for Confirmation
+rsi = ta.rsi(close, rsiLength)
+
+// Plot WAP, Dollar Volume, KST & RSI
+plot(wap, title="Weighted Average Price (WAP)", color=color.blue, linewidth=2)
+plot(dollarVolumeMA, title="Dollar Volume MA", color=color.purple, linewidth=2)
+plot(KST, title="KST", color=color.green, linewidth=2)
+plot(KSTSignal, title="KST Signal", color=color.red, linewidth=1)
+hline(0, "KST Zero Line", color=color.gray)
+plot(rsi, title="RSI", color=color.orange, linewidth=2)
+
+// Strategy Signals (Optional)
+longCondition = ta.crossover(KST, KSTSignal) and rsi > 50
+shortCondition = ta.crossunder(KST, KSTSignal) and rsi < 50
+
+plotshape(series=longCondition, location=location.bottom, color=color.green, style=shape.labelup, title="BUY")
+plotshape(series=shortCondition, location=location.top, color=color.red, style=shape.labeldown, title="SELL")
