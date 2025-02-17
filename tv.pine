@@ -1,65 +1,56 @@
-//@version=5
-indicator("Advanced Crypto KST Trading System", overlay=true)
+indicator("Scalping System for Low Liquidity Crypto", overlay=true)
 
-// 📌 Custom KST Inputs (Optimized for Scalping & Swing)
-fastLength1 = input(9, "KST Fast ROC 1")
-fastLength2 = input(12, "KST Fast ROC 2")
-fastLength3 = input(15, "KST Fast ROC 3")
-fastLength4 = input(18, "KST Fast ROC 4")
-slowLength1 = input(3, "KST SMA 1")
-slowLength2 = input(3, "KST SMA 2")
-slowLength3 = input(3, "KST SMA 3")
-slowLength4 = input(3, "KST SMA 4")
-sigLength = input(5, "KST Signal Length")
+// 📌 Custom Inputs
+fastROC = input(5, "Fast ROC Period")
+midROC = input(7, "Mid ROC Period")
+slowROC = input(10, "Slow ROC Period")
+smaLength = input(3, "SMA Length for ROC")
+signalLength = input(4, "KST Signal Length")
+rsiLength = input(7, "RSI Length")  // Shorter RSI for scalping
+stochLength = input(14, "Stochastic Length")
+stochSmooth = input(3, "Stochastic Smoothing")
 
-// 📌 RSI Input
-rsiLength = input(14, "RSI Length")
+// 📊 KST for Scalping
+roc1 = ta.roc(close, fastROC)
+roc2 = ta.roc(close, midROC)
+roc3 = ta.roc(close, slowROC)
+maRoc1 = ta.sma(roc1, smaLength)
+maRoc2 = ta.sma(roc2, smaLength)
+maRoc3 = ta.sma(roc3, smaLength)
+KST = maRoc1 + (2 * maRoc2) + (3 * maRoc3)
+KSTSignal = ta.sma(KST, signalLength)
 
-// 📌 VWAP & Dollar Volume
-wapLength = input(20, "WAP Length")
-wap = ta.vwma(close, wapLength)
-vwap = ta.vwap(close)
-dollarVolume = volume * close
-dollarVolumeMA = ta.sma(dollarVolume, 20)
-
-// 📌 KST Calculation
-roc1 = ta.roc(close, fastLength1)
-roc2 = ta.roc(close, fastLength2)
-roc3 = ta.roc(close, fastLength3)
-roc4 = ta.roc(close, fastLength4)
-
-maRoc1 = ta.sma(roc1, slowLength1)
-maRoc2 = ta.sma(roc2, slowLength2)
-maRoc3 = ta.sma(roc3, slowLength3)
-maRoc4 = ta.sma(roc4, slowLength4)
-
-KST = maRoc1 + (2 * maRoc2) + (3 * maRoc3) + (4 * maRoc4)
-KSTSignal = ta.sma(KST, sigLength)
-
-// 📌 RSI Confirmation
+// 📊 RSI for Overbought/Oversold Conditions
 rsi = ta.rsi(close, rsiLength)
 
-// 📌 Trading Conditions
-longCondition = ta.crossover(KST, KSTSignal) and rsi > 50 and close > vwap and dollarVolume > dollarVolumeMA
-shortCondition = ta.crossunder(KST, KSTSignal) and rsi < 50 and close < vwap and dollarVolume > dollarVolumeMA
+// 📊 Stochastic for Micro-Trends
+stochK = ta.sma(ta.stoch(close, high, low, stochLength), stochSmooth)
+stochD = ta.sma(stochK, stochSmooth)
 
-// 📌 Heatmap (Green/Red Dots)
-plotshape(series=longCondition, location=location.bottom, color=color.green, style=shape.circle, title="BUY Signal")
-plotshape(series=shortCondition, location=location.top, color=color.red, style=shape.circle, title="SELL Signal")
+// 📊 VWAP & Order Book Liquidity Check
+vwap = ta.vwap(close)
+dollarVolume = volume * close
+dollarVolumeMA = ta.sma(dollarVolume, 10)
 
-// 📌 Background Color Change
-bgColor = longCondition ? color.green : shortCondition ? color.red : na
+// 📌 Scalping Buy/Sell Conditions
+buyCondition = ta.crossover(KST, KSTSignal) and rsi > 40 and close > vwap and stochK < 20 and dollarVolume > dollarVolumeMA
+sellCondition = ta.crossunder(KST, KSTSignal) and rsi < 60 and close < vwap and stochK > 80 and dollarVolume > dollarVolumeMA
+
+// 📢 Scalping Signals with Heatmap
+plotshape(series=buyCondition, location=location.bottom, color=color.green, style=shape.circle, title="BUY Signal")
+plotshape(series=sellCondition, location=location.top, color=color.red, style=shape.circle, title="SELL Signal")
+
+// 📌 Background Color Change for Scalping Zones
+bgColor = buyCondition ? color.green : sellCondition ? color.red : na
 bgcolor(bgColor, transp=90)
 
-// 📌 Alerts for Automated Trading
-alertcondition(longCondition, title="BUY Alert", message="KST Buy Signal Confirmed!")
-alertcondition(shortCondition, title="SELL Alert", message="KST Sell Signal Confirmed!")
+// 📢 Alerts for Scalping Trades
+alertcondition(buyCondition, title="Scalping BUY Alert", message="Scalping Buy Signal Confirmed!")
+alertcondition(sellCondition, title="Scalping SELL Alert", message="Scalping Sell Signal Confirmed!")
 
-// 📌 Plotting Everything
-plot(wap, title="Weighted Average Price (WAP)", color=color.blue, linewidth=2)
-plot(vwap, title="VWAP", color=color.orange, linewidth=2)
+// 📊 Plots for Trend & Liquidity Confirmation
+plot(vwap, title="VWAP", color=color.blue, linewidth=2)
 plot(dollarVolumeMA, title="Dollar Volume MA", color=color.purple, linewidth=2)
 plot(KST, title="KST", color=color.green, linewidth=2)
 plot(KSTSignal, title="KST Signal", color=color.red, linewidth=1)
-hline(0, "KST Zero Line", color=color.gray)
-plot(rsi, title="RSI", color=color.orange, linewidth=2)
+hline(50, "RSI 50 Line", color=color.gray)
