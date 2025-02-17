@@ -1,30 +1,28 @@
-indicator("Crypto KST + WAP + VWAP + Dollar Volume Indicator", overlay=true)
+//@version=5
+indicator("Advanced Crypto KST Trading System", overlay=true)
 
-// 📌 Custom Inputs
-fastLength1 = input(10, "KST Fast Length 1")
-fastLength2 = input(15, "KST Fast Length 2")
-fastLength3 = input(20, "KST Fast Length 3")
-fastLength4 = input(30, "KST Fast Length 4")
-slowLength1 = input(10, "KST Slow Length 1")
-slowLength2 = input(15, "KST Slow Length 2")
-slowLength3 = input(20, "KST Slow Length 3")
-slowLength4 = input(30, "KST Slow Length 4")
-sigLength = input(9, "KST Signal Length")
+// 📌 Custom KST Inputs (Optimized for Scalping & Swing)
+fastLength1 = input(9, "KST Fast ROC 1")
+fastLength2 = input(12, "KST Fast ROC 2")
+fastLength3 = input(15, "KST Fast ROC 3")
+fastLength4 = input(18, "KST Fast ROC 4")
+slowLength1 = input(3, "KST SMA 1")
+slowLength2 = input(3, "KST SMA 2")
+slowLength3 = input(3, "KST SMA 3")
+slowLength4 = input(3, "KST SMA 4")
+sigLength = input(5, "KST Signal Length")
 
+// 📌 RSI Input
 rsiLength = input(14, "RSI Length")
+
+// 📌 VWAP & Dollar Volume
 wapLength = input(20, "WAP Length")
-
-// 📊 WAP (Weighted Average Price)
 wap = ta.vwma(close, wapLength)
-
-// 📊 VWAP (Volume Weighted Average Price)
 vwap = ta.vwap(close)
-
-// 📊 Dollar Volume (Volume * Close Price)
 dollarVolume = volume * close
 dollarVolumeMA = ta.sma(dollarVolume, 20)
 
-// 📊 KST Calculation
+// 📌 KST Calculation
 roc1 = ta.roc(close, fastLength1)
 roc2 = ta.roc(close, fastLength2)
 roc3 = ta.roc(close, fastLength3)
@@ -38,19 +36,26 @@ maRoc4 = ta.sma(roc4, slowLength4)
 KST = maRoc1 + (2 * maRoc2) + (3 * maRoc3) + (4 * maRoc4)
 KSTSignal = ta.sma(KST, sigLength)
 
-// 📊 RSI for Confirmation
+// 📌 RSI Confirmation
 rsi = ta.rsi(close, rsiLength)
 
-// 📌 Strategy Conditions
-longCondition = ta.crossover(KST, KSTSignal) and rsi > 50 and close > vwap
-shortCondition = ta.crossunder(KST, KSTSignal) and rsi < 50 and close < vwap
+// 📌 Trading Conditions
+longCondition = ta.crossover(KST, KSTSignal) and rsi > 50 and close > vwap and dollarVolume > dollarVolumeMA
+shortCondition = ta.crossunder(KST, KSTSignal) and rsi < 50 and close < vwap and dollarVolume > dollarVolumeMA
 
-// 📢 Green/Red Light System
+// 📌 Heatmap (Green/Red Dots)
+plotshape(series=longCondition, location=location.bottom, color=color.green, style=shape.circle, title="BUY Signal")
+plotshape(series=shortCondition, location=location.top, color=color.red, style=shape.circle, title="SELL Signal")
+
+// 📌 Background Color Change
 bgColor = longCondition ? color.green : shortCondition ? color.red : na
-plotshape(series=longCondition, location=location.bottom, color=color.green, style=shape.labelup, title="BUY")
-plotshape(series=shortCondition, location=location.top, color=color.red, style=shape.labeldown, title="SELL")
+bgcolor(bgColor, transp=90)
 
-// 📊 Plotting Everything
+// 📌 Alerts for Automated Trading
+alertcondition(longCondition, title="BUY Alert", message="KST Buy Signal Confirmed!")
+alertcondition(shortCondition, title="SELL Alert", message="KST Sell Signal Confirmed!")
+
+// 📌 Plotting Everything
 plot(wap, title="Weighted Average Price (WAP)", color=color.blue, linewidth=2)
 plot(vwap, title="VWAP", color=color.orange, linewidth=2)
 plot(dollarVolumeMA, title="Dollar Volume MA", color=color.purple, linewidth=2)
@@ -58,6 +63,3 @@ plot(KST, title="KST", color=color.green, linewidth=2)
 plot(KSTSignal, title="KST Signal", color=color.red, linewidth=1)
 hline(0, "KST Zero Line", color=color.gray)
 plot(rsi, title="RSI", color=color.orange, linewidth=2)
-
-// 📌 Background Color for Buy/Sell Signals
-bgcolor(bgColor, transp=80)
