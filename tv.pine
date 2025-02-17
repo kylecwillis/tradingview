@@ -1,6 +1,6 @@
-indicator("Custom Crypto KST + WAP + Dollar Volume", overlay=false)
+indicator("Crypto KST + WAP + VWAP + Dollar Volume Indicator", overlay=true)
 
-// Custom Inputs
+// 📌 Custom Inputs
 fastLength1 = input(10, "KST Fast Length 1")
 fastLength2 = input(15, "KST Fast Length 2")
 fastLength3 = input(20, "KST Fast Length 3")
@@ -14,14 +14,17 @@ sigLength = input(9, "KST Signal Length")
 rsiLength = input(14, "RSI Length")
 wapLength = input(20, "WAP Length")
 
-// WAP (Weighted Average Price)
+// 📊 WAP (Weighted Average Price)
 wap = ta.vwma(close, wapLength)
 
-// Dollar Volume (Volume * Close Price)
+// 📊 VWAP (Volume Weighted Average Price)
+vwap = ta.vwap(close)
+
+// 📊 Dollar Volume (Volume * Close Price)
 dollarVolume = volume * close
 dollarVolumeMA = ta.sma(dollarVolume, 20)
 
-// KST Calculation
+// 📊 KST Calculation
 roc1 = ta.roc(close, fastLength1)
 roc2 = ta.roc(close, fastLength2)
 roc3 = ta.roc(close, fastLength3)
@@ -35,20 +38,26 @@ maRoc4 = ta.sma(roc4, slowLength4)
 KST = maRoc1 + (2 * maRoc2) + (3 * maRoc3) + (4 * maRoc4)
 KSTSignal = ta.sma(KST, sigLength)
 
-// RSI for Confirmation
+// 📊 RSI for Confirmation
 rsi = ta.rsi(close, rsiLength)
 
-// Plot WAP, Dollar Volume, KST & RSI
+// 📌 Strategy Conditions
+longCondition = ta.crossover(KST, KSTSignal) and rsi > 50 and close > vwap
+shortCondition = ta.crossunder(KST, KSTSignal) and rsi < 50 and close < vwap
+
+// 📢 Green/Red Light System
+bgColor = longCondition ? color.green : shortCondition ? color.red : na
+plotshape(series=longCondition, location=location.bottom, color=color.green, style=shape.labelup, title="BUY")
+plotshape(series=shortCondition, location=location.top, color=color.red, style=shape.labeldown, title="SELL")
+
+// 📊 Plotting Everything
 plot(wap, title="Weighted Average Price (WAP)", color=color.blue, linewidth=2)
+plot(vwap, title="VWAP", color=color.orange, linewidth=2)
 plot(dollarVolumeMA, title="Dollar Volume MA", color=color.purple, linewidth=2)
 plot(KST, title="KST", color=color.green, linewidth=2)
 plot(KSTSignal, title="KST Signal", color=color.red, linewidth=1)
 hline(0, "KST Zero Line", color=color.gray)
 plot(rsi, title="RSI", color=color.orange, linewidth=2)
 
-// Strategy Signals (Optional)
-longCondition = ta.crossover(KST, KSTSignal) and rsi > 50
-shortCondition = ta.crossunder(KST, KSTSignal) and rsi < 50
-
-plotshape(series=longCondition, location=location.bottom, color=color.green, style=shape.labelup, title="BUY")
-plotshape(series=shortCondition, location=location.top, color=color.red, style=shape.labeldown, title="SELL")
+// 📌 Background Color for Buy/Sell Signals
+bgcolor(bgColor, transp=80)
